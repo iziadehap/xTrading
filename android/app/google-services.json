@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "578741687445",
+    "project_id": "xtrading-7efe9",
+    "storage_bucket": "xtrading-7efe9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:578741687445:android:24437a2fe73aa80f90779c",
+        "android_client_info": {
+          "package_name": "com.example.x_trading_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDoYxevaEnYhhOx2EQKcgXLF6jO0dW8QIs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
