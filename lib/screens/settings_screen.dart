@@ -13,7 +13,7 @@ class _C {
   static const surfaceElevated = Color(0xFF1E2330);
   static const border = Color(0xFF252B38);
   static const accent = Color(0xFF4F8EF7);
-  static const accentDim = Color(0xFF1A2D54);
+  // static const accentDim = Color(0xFF1A2D54);
   static const buy = Color(0xFF22C55E);
   static const failed = Color(0xFFEF4444);
   static const textPrimary = Color(0xFFEFF2F7);

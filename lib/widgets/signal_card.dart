@@ -6,7 +6,7 @@ import '../providers/signal_provider.dart';
 
 // ── Design Tokens (shared with home screen) ───────────────────────────────────
 class _C {
-  static const bg = Color(0xFF0D0F14);
+  // static const bg = Color(0xFF0D0F14);
   static const surface = Color(0xFF161A22);
   static const surfaceElevated = Color(0xFF1E2330);
   static const border = Color(0xFF252B38);

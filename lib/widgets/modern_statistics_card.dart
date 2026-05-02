@@ -5,16 +5,16 @@ import '../models/signal_model.dart';
 
 // ── Design Tokens ─────────────────────────────────────────────────────────────
 class _C {
-  static const surface = Color(0xFF161A22);
+  // static const surface = Color(0xFF161A22);
   static const surfaceElevated = Color(0xFF1E2330);
   static const border = Color(0xFF252B38);
   static const accent = Color(0xFF4F8EF7);
   static const buy = Color(0xFF22C55E);
   static const wait = Color(0xFFF59E0B);
   static const failed = Color(0xFFEF4444);
-  static const purple = Color(0xFFA855F7);
-  static const textPrimary = Color(0xFFEFF2F7);
-  static const textMuted = Color(0xFF4A5168);
+  // static const purple = Color(0xFFA855F7);
+  // static const textPrimary = Color(0xFFEFF2F7);
+  // static const textMuted = Color(0xFF4A5168);
 }
 
 class ModernStatisticsCard extends ConsumerWidget {

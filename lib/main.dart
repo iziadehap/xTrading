@@ -7,7 +7,7 @@ import 'package:x_trading_flutter/config.dart';
 import 'screens/modern_home_screen.dart';
 import 'services/settings_service.dart';
 import 'services/update_service.dart';
-import 'widgets/update_dialog.dart';
+// import 'widgets/update_dialog.dart';
 
 // Check for app updates
 Future<void> checkForUpdates() async {
