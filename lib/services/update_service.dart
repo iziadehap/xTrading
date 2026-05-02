@@ -1,15 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// ──────────────────────────────────────────────────────────────────
-///  Flask API Integration for App Updates
-///  Uses the following endpoints:
-///  - GET /update  → Get update info (version, download_url, etc.)
-///  - GET /update/download → Download APK file
+///  GitHub Releases Integration for App Updates
+///  Uses GitHub Releases API to check for updates and download APK
 /// ──────────────────────────────────────────────────────────────────
 
 class UpdateInfo {
@@ -34,9 +33,14 @@ class UpdateService {
   UpdateService._();
   static final UpdateService instance = UpdateService._();
 
-  // Configure your Flask API base URL
-  static const String _baseUrl =
-      'http://your-server-ip:8080'; // Update this with your server IP
+  // Get GitHub configuration from environment variables
+  String get _owner => dotenv.get('GITHUB_OWNER', fallback: 'your-username');
+  String get _repo => dotenv.get('GITHUB_REPO', fallback: 'your-repo');
+  String get _githubToken => dotenv.get('GITHUB_TOKEN', fallback: '');
+
+  // GitHub API URL
+  String get _releasesUrl =>
+      'https://api.github.com/repos/$_owner/$_repo/releases';
 
   // ── Check for update ──────────────────────────────────────────────
   /// Returns [UpdateInfo] when an update is available, null otherwise.
@@ -49,35 +53,81 @@ class UpdateService {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version.trim();
 
-      // Fetch update info from Flask API
+      // Prepare headers (include token if available)
+      final headers = <String, String>{
+        'Accept': 'application/vnd.github.v3+json',
+      };
+      if (_githubToken.isNotEmpty) {
+        headers['Authorization'] = 'token $_githubToken';
+      }
+
+      // Fetch releases from GitHub API
       final response = await http
-          .get(Uri.parse('$_baseUrl/update'))
+          .get(Uri.parse(_releasesUrl), headers: headers)
           .timeout(const Duration(seconds: 15));
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+      if (response.statusCode != 200) {
+        print('⚠️ GitHub API error: ${response.statusCode}');
+        return null;
+      }
 
-        // Check if update is available
-        if (data['has_update'] == true) {
-          final latestVersion = data['version'].toString().trim();
+      final List<dynamic> releases = json.decode(response.body);
+      if (releases.isEmpty) {
+        print('ℹ️ No releases found in repository');
+        return null;
+      }
 
-          if (_isNewer(latestVersion, currentVersion)) {
-            return UpdateInfo(
-              currentVersion: currentVersion,
-              latestVersion: latestVersion,
-              forceUpdate: data['force_update'] ?? false,
-              releaseNotes:
-                  data['release_notes'] ??
-                  'Bug fixes and performance improvements.',
-              downloadUrl: '$_baseUrl${data['download_url']}',
-              fileSize: data['file_size'] ?? 0,
-            );
+      // Find the latest release
+      Map<String, dynamic>? latestRelease;
+      for (final release in releases) {
+        if (latestRelease == null ||
+            DateTime.parse(
+              release['published_at'],
+            ).isAfter(DateTime.parse(latestRelease['published_at']))) {
+          latestRelease = release as Map<String, dynamic>;
+        }
+      }
+
+      if (latestRelease == null) {
+        print('ℹ️ No valid release found');
+        return null;
+      }
+
+      // Extract version from tag (remove 'v' prefix if present)
+      String latestVersion = latestRelease['tag_name'] ?? '';
+      if (latestVersion.startsWith('v')) {
+        latestVersion = latestVersion.substring(1);
+      }
+
+      // Check if this is a newer version
+      if (_isNewer(latestVersion, currentVersion)) {
+        // Find APK asset in the release
+        String? downloadUrl;
+        int fileSize = 0;
+
+        final assets = latestRelease['assets'] as List<dynamic>? ?? [];
+        for (final asset in assets) {
+          final assetName = asset['name'] as String? ?? '';
+          if (assetName.endsWith('.apk')) {
+            downloadUrl = asset['browser_download_url'] as String?;
+            fileSize = asset['size'] as int? ?? 0;
+            break;
           }
         }
-      } else if (response.statusCode == 404) {
-        // No APK file available - this is normal
-        print('ℹ️ No update available (APK not found on server)');
-        return null;
+
+        if (downloadUrl == null) {
+          print('ℹ️ No APK file found in release ${latestRelease['tag_name']}');
+          return null;
+        }
+
+        return UpdateInfo(
+          currentVersion: currentVersion,
+          latestVersion: latestVersion,
+          forceUpdate: false, // GitHub releases don't typically force updates
+          releaseNotes: latestRelease['body'] ?? 'No release notes available.',
+          downloadUrl: downloadUrl,
+          fileSize: fileSize,
+        );
       }
 
       return null; // already up to date

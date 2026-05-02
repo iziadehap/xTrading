@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../providers/settings_provider.dart';
+import '../services/update_service.dart';
+import '../widgets/update_dialog.dart';
 
 // ── Design Tokens ─────────────────────────────────────────────────────────────
 class _C {
@@ -37,6 +39,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     super.initState();
     final currentUrl = ref.read(baseUrlProvider);
     _urlController = TextEditingController(text: currentUrl);
+    _initPackageInfo();
+  }
+
+  Future<void> _initPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _packageInfo = info;
+      });
+    }
+  }
+
+  Future<void> _checkForUpdates() async {
+    HapticFeedback.lightImpact();
+
+    try {
+      final updateInfo = await UpdateService.instance.check();
+      if (updateInfo != null && mounted) {
+        final shouldUpdate = await showUpdateDialog(context, updateInfo);
+        if (shouldUpdate) {
+          // Update was initiated, dialog will handle download
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You are using the latest version'),
+            backgroundColor: _C.buy,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to check for updates: $e'),
+            backgroundColor: _C.failed,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -129,29 +171,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
-      child: Scaffold(
-        backgroundColor: _C.bg,
-        body: Column(
-          children: [
-            _buildHeader(context),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildUrlSection(currentUrl),
-                    const SizedBox(height: 20),
-                    _buildActions(),
-                    const SizedBox(height: 28),
-                    _buildVersionInfo(),
-                    _buildMakeByAxon(),
-                    // _buildTipCard(),
-                  ],
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: _C.bg,
+          body: Column(
+            children: [
+              _buildHeader(context),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildUrlSection(currentUrl),
+                      const SizedBox(height: 20),
+                      _buildActions(),
+                      const SizedBox(height: 28),
+                      _buildVersionInfo(),
+                      // Spacer(),
+                      // _buildTipCard(),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+              _buildMakeByAxon(),
+            ],
+          ),
         ),
       ),
     );
@@ -159,12 +204,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Widget _buildHeader(BuildContext context) {
     return Container(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 12,
-        left: 8,
-        right: 20,
-        bottom: 16,
-      ),
+      padding: EdgeInsets.only(top: 16, left: 8, right: 20, bottom: 16),
       decoration: const BoxDecoration(
         color: _C.surface,
         border: Border(bottom: BorderSide(color: _C.border)),
@@ -430,16 +470,53 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: _C.border),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Column(
         children: [
-          Text(
-            // use package_info_plus to get version
-            'v${_packageInfo?.version ?? 'NAN'}',
-            style: TextStyle(
-              color: _C.textSecondary,
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                // use package_info_plus to get version
+                'v${_packageInfo?.version ?? 'Loading...'}',
+                style: TextStyle(
+                  color: _C.textSecondary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: _checkForUpdates,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [_C.accent, Color(0xFF7B5CF0)],
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.system_update_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Check for Updates',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -448,26 +525,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildMakeByAxon() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _C.surfaceElevated,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _C.border),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'Made with ❤️ by Axon',
-            style: TextStyle(
-              color: _C.textSecondary,
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          'Made with ❤️ by Axon',
+          style: TextStyle(
+            color: _C.textSecondary,
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

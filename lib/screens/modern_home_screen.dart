@@ -149,24 +149,27 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
-      child: Scaffold(
-        backgroundColor: _AppColors.bg,
-        body: FadeTransition(
-          opacity: _fadeAnim,
-          child: Column(
-            children: [
-              _buildHeader(),
-              _buildSearchBar(),
-              const SizedBox(height: 4),
-              _buildStatsRow(),
-              const SizedBox(height: 12),
-              _buildTabBar(),
-              const SizedBox(height: 4),
-              Expanded(child: _buildTabContent()),
-            ],
+      child: SafeArea(
+        top: false,
+        child: Scaffold(
+          backgroundColor: _AppColors.bg,
+          body: FadeTransition(
+            opacity: _fadeAnim,
+            child: Column(
+              children: [
+                _buildHeader(),
+                _buildSearchBar(),
+                const SizedBox(height: 4),
+                _buildStatsRow(),
+                const SizedBox(height: 12),
+                _buildTabBar(),
+                const SizedBox(height: 4),
+                Expanded(child: _buildTabContent()),
+              ],
+            ),
           ),
+          floatingActionButton: _buildFAB(),
         ),
-        floatingActionButton: _buildFAB(),
       ),
     );
   }
@@ -655,7 +658,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
         GestureDetector(
           onTap: _refreshAllData,
           child: Container(
-            height: 52,
+            height: 50,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
@@ -670,21 +673,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
                 ),
               ],
             ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  'Refresh',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
+            child: Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
           ),
         ),
       ],
